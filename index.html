@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>RunConquer</title>
+  <meta name="description"
+    content="RunConquer territory-running game UI prototype with simulated gameplay data.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#06060b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/index.css">
+</head>
+
+<body>
+  <div id="app" class="app">
+
+    <!-- ====== SCREEN: MAP (Home) ====== -->
+    <div id="screen-map" class="screen active">
+      <!-- Top Bar -->
+      <header class="app-header">
+        <div class="app-header-left">
+          <span class="app-logo-icon">⚡</span>
+          <span class="app-logo-text">Run<span class="accent">Conquer</span></span>
+        </div>
+        <div class="app-header-right">
+          <button class="header-btn" id="btn-alerts" aria-label="Alerts">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span class="notif-badge">3</span>
+          </button>
+          <div class="avatar-sm" id="btn-profile">
+            <span>👤</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Map Container -->
+      <div class="map-screen-body">
+        <div id="territory-map" class="territory-map-full"></div>
+
+        <!-- Map Floating Cards -->
+        <div class="map-floats">
+          <!-- Live Status Pill -->
+          <div class="map-live-pill">
+            <span class="live-dot"></span>
+            <span>Simulated game map</span>
+          </div>
+
+          <!-- Quick Stats Bar -->
+          <div class="map-quick-stats">
+            <div class="quick-stat">
+              <span class="qs-value">89,450</span>
+              <span class="qs-label">M² owned</span>
+            </div>
+            <div class="qs-divider"></div>
+            <div class="quick-stat">
+              <span class="qs-value rank-value">#7</span>
+              <span class="qs-label">City rank</span>
+            </div>
+            <div class="qs-divider"></div>
+            <div class="quick-stat">
+              <span class="qs-value attack-value">5</span>
+              <span class="qs-label">Under attack</span>
+            </div>
+          </div>
+
+          <!-- Start Run FAB -->
+          <button id="btn-start-run" class="fab-start-run">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            <span>Start Run</span>
+          </button>
+        </div>
+
+        <!-- Alert Toast -->
+        <div id="alert-toast" class="alert-toast hidden">
+          <div class="alert-icon">⚠️</div>
+          <div class="alert-content">
+            <strong>Territory Under Attack!</strong>
+            <p>"SpeedDemon" is invading Sector 7</p>
+          </div>
+          <button class="alert-action">Defend →</button>
+        </div>
+
+        <!-- Map Legend (collapsible) -->
+        <div class="map-legend-float">
+          <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span> Yours</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--red)"></span> Rival</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span> Open</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== SCREEN: LEADERBOARD ====== -->
+    <div id="screen-leaderboard" class="screen">
+      <header class="app-header">
+        <h1 class="screen-title">Leaderboard</h1>
+      </header>
+      <div class="screen-body">
+        <!-- Tabs -->
+        <div class="pill-tabs">
+          <button class="pill-tab active" data-tab="global">🌍 Global</button>
+          <button class="pill-tab" data-tab="city">🏙️ City</button>
+          <button class="pill-tab" data-tab="teams">⚔️ Teams</button>
+        </div>
+
+        <!-- Your Rank Banner -->
+        <div class="your-rank-banner">
+          <div class="rank-avatar">👤</div>
+          <div class="rank-info">
+            <span class="rank-name">You</span>
+            <span class="rank-subtitle">Delhi NCR, India</span>
+          </div>
+          <div class="rank-badge">
+            <span class="rank-number">#7</span>
+            <span class="rank-score">89,450 M²</span>
+          </div>
+        </div>
+
+        <!-- Leaderboard List -->
+        <div id="leaderboard-container" class="lb-list"></div>
+      </div>
+    </div>
+
+    <!-- ====== SCREEN: RUN (Dashboard) ====== -->
+    <div id="screen-run" class="screen">
+      <header class="app-header">
+        <h1 class="screen-title">Dashboard</h1>
+        <span class="status-badge-live">● DEMO</span>
+      </header>
+      <div class="screen-body">
+        <!-- Current Run Card -->
+        <div class="run-card-main">
+          <div class="run-card-label">Current Run</div>
+          <div class="run-metrics-grid">
+            <div class="run-metric-box">
+              <span class="rm-value" id="run-distance">4.2</span>
+              <span class="rm-unit">km</span>
+              <span class="rm-label">Distance</span>
+            </div>
+            <div class="run-metric-box">
+              <span class="rm-value" id="run-pace">5:32</span>
+              <span class="rm-unit">/km</span>
+              <span class="rm-label">Pace</span>
+            </div>
+            <div class="run-metric-box">
+              <span class="rm-value" id="run-duration">23:12</span>
+              <span class="rm-unit">min</span>
+              <span class="rm-label">Duration</span>
+            </div>
+            <div class="run-metric-box">
+              <span class="rm-value" id="run-calories">312</span>
+              <span class="rm-unit">kcal</span>
+              <span class="rm-label">Calories</span>
+            </div>
+          </div>
+          <div class="territory-capture-bar">
+            <div class="tcb-header">
+              <span>Territory Captured</span>
+              <span class="tcb-value">12,450 M²</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="--pct:65%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly Chart -->
+        <div class="app-card">
+          <div class="card-title">Weekly Progress</div>
+          <div class="weekly-chart">
+            <div class="wc-bar" style="--h:40%" data-day="M" data-val="3.2km"></div>
+            <div class="wc-bar" style="--h:70%" data-day="T" data-val="5.6km"></div>
+            <div class="wc-bar" style="--h:55%" data-day="W" data-val="4.4km"></div>
+            <div class="wc-bar" style="--h:85%" data-day="T" data-val="6.8km"></div>
+            <div class="wc-bar active" style="--h:60%" data-day="F" data-val="4.8km"></div>
+            <div class="wc-bar" style="--h:0%" data-day="S" data-val="—"></div>
+            <div class="wc-bar" style="--h:0%" data-day="S" data-val="—"></div>
+          </div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="app-card">
+          <div class="card-title">Recent Activity</div>
+          <div class="activity-list">
+            <div class="activity-row">
+              <div class="ar-icon" style="background:rgba(0,187,255,0.12)">🏃</div>
+              <div class="ar-text">
+                <strong>Captured 8,200 M²</strong>
+                <span>Sector 14, Gurgaon • 2h ago</span>
+              </div>
+            </div>
+            <div class="activity-row">
+              <div class="ar-icon" style="background:rgba(255,45,85,0.12)">⚔️</div>
+              <div class="ar-text">
+                <strong>Defended against "NightRunner"</strong>
+                <span>DLF Phase 3 • 5h ago</span>
+              </div>
+            </div>
+            <div class="activity-row">
+              <div class="ar-icon" style="background:rgba(255,202,40,0.12)">🏆</div>
+              <div class="ar-text">
+                <strong>Reached #7 in City Rankings</strong>
+                <span>Delhi NCR • 1d ago</span>
+              </div>
+            </div>
+            <div class="activity-row">
+              <div class="ar-icon" style="background:rgba(0,230,118,0.12)">🗺️</div>
+              <div class="ar-text">
+                <strong>New area unlocked: Cybercity</strong>
+                <span>Gurgaon • 2d ago</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== SCREEN: STATS ====== -->
+    <div id="screen-stats" class="screen">
+      <header class="app-header">
+        <h1 class="screen-title">Your Empire</h1>
+      </header>
+      <div class="screen-body">
+        <!-- Territory Ring -->
+        <div class="empire-hero">
+          <div class="empire-ring">
+            <svg viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8" />
+              <circle cx="60" cy="60" r="52" fill="none" stroke="url(#ringGrad)" stroke-width="8" stroke-dasharray="327"
+                stroke-dashoffset="98" stroke-linecap="round" transform="rotate(-90 60 60)" />
+              <defs>
+                <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="var(--blue)" />
+                  <stop offset="100%" stop-color="var(--green)" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="ring-center">
+              <span class="ring-number" data-count="89450">0</span>
+              <span class="ring-unit">M²</span>
+            </div>
+          </div>
+          <div class="empire-label">Total Territory Owned</div>
+          <div class="empire-change">↑ 12,450 M² this week</div>
+        </div>
+
+        <!-- Faction War -->
+        <div class="app-card">
+          <div class="card-title">⚔️ Faction War</div>
+          <div class="faction-row">
+            <div class="faction-side">
+              <span class="f-name" style="color:var(--blue)">Team Blue</span>
+              <span class="f-score">1.2M M²</span>
+            </div>
+            <div class="faction-side right">
+              <span class="f-name" style="color:var(--red)">Team Red</span>
+              <span class="f-score">890K M²</span>
+            </div>
+          </div>
+          <div class="faction-bar">
+            <div class="fb-fill blue" style="width:58%"></div>
+            <div class="fb-fill red" style="width:42%"></div>
+          </div>
+        </div>
+
+        <!-- Achievements -->
+        <div class="app-card">
+          <div class="card-title">🏅 Achievements</div>
+          <div class="achievements-grid">
+            <div class="ach unlocked"><span class="ach-icon">👑</span><span>King of the Block</span></div>
+            <div class="ach unlocked"><span class="ach-icon">🔥</span><span>7-Day Streak</span></div>
+            <div class="ach unlocked"><span class="ach-icon">⚡</span><span>Speed Demon</span></div>
+            <div class="ach locked"><span class="ach-icon">🌍</span><span>World Dominator</span></div>
+            <div class="ach locked"><span class="ach-icon">🛡️</span><span>Unbreakable</span></div>
+            <div class="ach locked"><span class="ach-icon">💀</span><span>Territory Terminator</span></div>
+          </div>
+        </div>
+
+        <!-- Growth Chart -->
+        <div class="app-card">
+          <div class="card-title">📈 Territory Growth</div>
+          <div class="growth-chart">
+            <div class="gc-bar" style="--h:20%"><span>J</span></div>
+            <div class="gc-bar" style="--h:35%"><span>F</span></div>
+            <div class="gc-bar" style="--h:30%"><span>M</span></div>
+            <div class="gc-bar" style="--h:50%"><span>A</span></div>
+            <div class="gc-bar" style="--h:45%"><span>M</span></div>
+            <div class="gc-bar" style="--h:65%"><span>J</span></div>
+            <div class="gc-bar" style="--h:60%"><span>J</span></div>
+            <div class="gc-bar" style="--h:75%"><span>A</span></div>
+            <div class="gc-bar" style="--h:70%"><span>S</span></div>
+            <div class="gc-bar" style="--h:85%"><span>O</span></div>
+            <div class="gc-bar" style="--h:90%"><span>N</span></div>
+            <div class="gc-bar current" style="--h:95%"><span>D</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== SCREEN: PROFILE ====== -->
+    <div id="screen-profile" class="screen">
+      <header class="app-header">
+        <h1 class="screen-title">Profile</h1>
+      </header>
+      <div class="screen-body">
+        <!-- Profile Header -->
+        <div class="profile-hero">
+          <div class="profile-avatar-lg">👤</div>
+          <h2 class="profile-name">Runner_Dux</h2>
+          <p class="profile-sub">🇮🇳 Delhi NCR, India • Team Blue</p>
+          <div class="profile-stats-row">
+            <div class="ps-item">
+              <span class="ps-val">89,450</span>
+              <span class="ps-lbl">M² Owned</span>
+            </div>
+            <div class="ps-item">
+              <span class="ps-val">142</span>
+              <span class="ps-lbl">Runs</span>
+            </div>
+            <div class="ps-val">
+              <span class="ps-val">387</span>
+              <span class="ps-lbl">km Total</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings List -->
+        <div class="settings-list">
+          <div class="settings-item">
+            <span class="si-icon">⌚</span>
+            <span class="si-label">Connected Devices</span>
+            <span class="si-value">Demo only</span>
+          </div>
+          <div class="settings-item">
+            <span class="si-icon">🔔</span>
+            <span class="si-label">Notifications</span>
+            <span class="si-value">Demo only</span>
+          </div>
+          <div class="settings-item">
+            <span class="si-icon">🎨</span>
+            <span class="si-label">Territory Color</span>
+            <span class="si-value"><span class="color-swatch" style="background:var(--blue)"></span> Electric
+              Blue</span>
+          </div>
+          <div class="settings-item">
+            <span class="si-icon">👥</span>
+            <span class="si-label">Team</span>
+            <span class="si-value">Blue Thunder</span>
+          </div>
+          <div class="settings-item">
+            <span class="si-icon">💎</span>
+            <span class="si-label">Subscription</span>
+            <span class="si-value premium">PRO</span>
+          </div>
+          <div class="settings-item">
+            <span class="si-icon">📊</span>
+            <span class="si-label">Units</span>
+            <span class="si-value">Metric</span>
+          </div>
+          <div class="settings-item">
+            <span class="si-icon">🔒</span>
+            <span class="si-label">Privacy</span>
+            <span class="si-value">Demo only</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== BOTTOM TAB BAR ====== -->
+    <nav id="tab-bar" class="tab-bar">
+      <button class="tab active" data-screen="screen-map">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+          <line x1="8" y1="2" x2="8" y2="18" />
+          <line x1="16" y1="6" x2="16" y2="22" />
+        </svg>
+        <span>Map</span>
+      </button>
+      <button class="tab" data-screen="screen-leaderboard">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+        </svg>
+        <span>Rankings</span>
+      </button>
+      <button class="tab tab-center" data-screen="screen-run">
+        <div class="tab-run-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
+        </div>
+        <span>Run</span>
+      </button>
+      <button class="tab" data-screen="screen-stats">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12a9 9 0 1 1-9-9" />
+          <path d="M21 3v9h-9" />
+        </svg>
+        <span>Stats</span>
+      </button>
+      <button class="tab" data-screen="screen-profile">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        <span>Profile</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/leaderboard.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
+</html>
